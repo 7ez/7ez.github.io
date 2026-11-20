@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BPM finder | Aochi</title>
+<link rel="stylesheet" href="../style.css">
+<style>
+.title {
+  margin-bottom: 32px;
+}
+
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.drop {
+  display: block;
+  padding: 56px 20px;
+  border: 1px dashed var(--line);
+  text-align: center;
+  cursor: pointer;
+}
+
+.drop:hover,
+.drop:focus-within,
+.drop.over {
+  border-color: var(--accent);
+}
+
+.drop strong {
+  display: block;
+  font-size: 22px;
+}
+
+.drop small {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+}
+
+.status {
+  margin-top: 24px;
+}
+
+table {
+  width: 100%;
+  margin-top: 24px;
+  border-collapse: collapse;
+}
+
+th {
+  color: var(--muted);
+  font-weight: 400;
+  text-align: left;
+}
+
+th,
+td {
+  padding: 6px 16px 6px 0;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.bpm {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.other {
+  color: var(--muted);
+}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <p><a href="../">&larr; back</a></p>
+  <h1 class="title">BPM finder</h1>
+
+  <label class="drop" id="drop">
+    <input class="sr" id="file" type="file" accept="audio/*">
+    <strong>choose an audio file</strong>
+    <small>or drop one here</small>
+  </label>
+
+  <p class="status muted" id="status" hidden></p>
+
+  <table id="results" hidden>
+    <thead>
+      <tr>
+        <th>time</th>
+        <th>bpm</th>
+        <th>could also be</th>
+      </tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+</main>
+
+<script src="detect-bpm.js"></script>
+
+<script>
+const $ = (id) => document.getElementById(id)
+
+const ctx = new AudioContext({ sampleRate: 22050 })
+let busy = false
+
+const fmt = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`
+
+function toMono(buffer) {
+  const mono = new Float32Array(buffer.length)
+  for (let c = 0; c < buffer.numberOfChannels; c++) {
+    const data = buffer.getChannelData(c)
+    for (let i = 0; i < mono.length; i++) mono[i] += data[i] / buffer.numberOfChannels
+  }
+  return mono
+}
+
+function show(sections) {
+  $('rows').replaceChildren()
+  for (const s of sections) {
+    const row = $('rows').insertRow()
+    row.insertCell().textContent = `${fmt(s.start)} to ${fmt(s.end)}`
+
+    const bpm = row.insertCell()
+    bpm.className = 'bpm'
+    bpm.textContent = s.bpm.toFixed(2)
+
+    const other = row.insertCell()
+    other.className = 'other'
+    other.textContent = [2, 0.5, 1.5, 2 / 3]
+      .map((k) => s.bpm * k)
+      .filter((v) => v >= 40 && v <= 300)
+      .map((v) => v.toFixed(2))
+      .join(' / ')
+  }
+  $('results').hidden = false
+}
+
+async function analyse(file) {
+  if (busy) return
+  busy = true
+  $('results').hidden = true
+  $('status').hidden = false
+  $('status').textContent = 'decoding'
+
+  try {
+    const decoded = await ctx.decodeAudioData(await file.arrayBuffer())
+    const sections = await detectSections(toMono(decoded), decoded.sampleRate, (p) => {
+      $('status').textContent = `analysing ${Math.round(p * 100)}%`
+    })
+    $('status').textContent = file.name
+    show(sections)
+  } catch {
+    $('status').textContent = 'that file could not be decoded'
+  }
+  busy = false
+}
+
+$('file').addEventListener('change', (e) => {
+  if (e.target.files[0]) analyse(e.target.files[0])
+  e.target.value = ''
+})
+
+for (const type of ['dragover', 'drop']) {
+  window.addEventListener(type, (e) => e.preventDefault())
+}
+window.addEventListener('drop', (e) => {
+  $('drop').classList.remove('over')
+  if (e.dataTransfer.files[0]) analyse(e.dataTransfer.files[0])
+})
+$('drop').addEventListener('dragenter', () => $('drop').classList.add('over'))
+$('drop').addEventListener('dragleave', () => $('drop').classList.remove('over'))
+</script>
+</body>
+</html>

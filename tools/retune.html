@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Retune | Aochi</title>
+<link rel="stylesheet" href="../style.css">
+<style>
+.wrap {
+  max-width: 820px;
+}
+
+.title {
+  margin-bottom: 32px;
+}
+
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.drop {
+  display: block;
+  padding: 56px 20px;
+  border: 1px dashed var(--line);
+  text-align: center;
+  cursor: pointer;
+}
+
+.drop[hidden] {
+  display: none;
+}
+
+.drop:hover,
+.drop:focus-within,
+.drop.over {
+  border-color: var(--accent);
+}
+
+.drop strong {
+  display: block;
+  font-size: 22px;
+}
+
+.drop small {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+}
+
+.btn {
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.btn:focus-visible,
+.slider input:focus-visible,
+.field input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.btn.fill,
+.btn.hot {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.btn[aria-pressed='true'],
+.btn[aria-pressed='true']:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.file {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.file .name {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file label.btn {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+}
+
+.player {
+  border: 1px solid var(--line);
+}
+
+.wave {
+  display: block;
+  width: 100%;
+  height: 84px;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.transport {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.transport .btn {
+  min-width: 96px;
+}
+
+.time {
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 15px;
+}
+
+.status {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 14px;
+  text-align: right;
+}
+
+.panels {
+  display: grid;
+  gap: 0 32px;
+  margin: 0 0 24px;
+}
+
+@media (min-width: 640px) {
+  .panels {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.panel {
+  margin-top: 32px;
+}
+
+.panel h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mini {
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.mini:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.value {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 2px 0 6px;
+}
+
+.value input {
+  width: 6.5ch;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 34px;
+  font-weight: 700;
+  -moz-appearance: textfield;
+}
+
+.value input::-webkit-outer-spin-button,
+.value input::-webkit-inner-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
+.value input:focus {
+  border-bottom-color: var(--accent);
+  outline: none;
+}
+
+.value small {
+  color: var(--accent);
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.slider {
+  position: relative;
+  height: 32px;
+  margin-bottom: 8px;
+}
+
+.slider::before,
+.slider::after {
+  content: '';
+  position: absolute;
+  top: 14px;
+  left: 0;
+  height: 4px;
+}
+
+.slider::before {
+  right: 0;
+  background: var(--line);
+}
+
+.slider::after {
+  width: var(--pct, 50%);
+  background: var(--accent);
+}
+
+.slider input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 32px;
+  margin: 0;
+  background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.slider input::-webkit-slider-runnable-track {
+  height: 32px;
+  background: transparent;
+}
+
+.slider input::-webkit-slider-thumb {
+  width: 12px;
+  height: 24px;
+  margin-top: 4px;
+  border: 0;
+  background: var(--ink);
+  -webkit-appearance: none;
+}
+
+.slider input::-moz-range-track {
+  height: 32px;
+  background: transparent;
+}
+
+.slider input::-moz-range-thumb {
+  width: 12px;
+  height: 24px;
+  border: 0;
+  border-radius: 0;
+  background: var(--ink);
+}
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+}
+
+.steps .btn {
+  min-width: 0;
+  min-height: 38px;
+  padding: 0;
+  font-size: 13px;
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  font-size: 14px;
+}
+
+.field input {
+  width: 84px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+}
+
+.field output {
+  min-width: 90px;
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-weight: 700;
+  text-align: right;
+}
+
+.link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  cursor: pointer;
+}
+
+.link input {
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.export {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.opts {
+  display: flex;
+  flex: 1 1 100%;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.seg {
+  display: flex;
+}
+
+.seg[hidden] {
+  display: none;
+}
+
+.seg .btn {
+  min-height: 38px;
+  padding: 0 14px;
+  margin-left: -1px;
+}
+
+.seg .btn:first-child {
+  margin-left: 0;
+}
+
+.export p {
+  flex: 1 1 200px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <p><a href="../">&larr; back</a></p>
+  <h1 class="title">Retune</h1>
+
+  <label class="drop" id="drop">
+    <input class="sr" id="file" type="file" accept="audio/*">
+    <strong>choose an audio file</strong>
+    <small>or drop one here</small>
+  </label>
+
+  <section id="app" hidden>
+    <div class="file">
+      <span class="name" id="name"></span>
+      <label class="btn" for="file">change file</label>
+    </div>
+
+    <div class="player">
+      <canvas class="wave" id="wave" aria-label="Waveform, click to seek"></canvas>
+      <div class="transport">
+        <button class="btn hot" id="play" type="button">play</button>
+        <span class="time" id="time">0:00 / 0:00</span>
+        <span class="status" id="status" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="panels" id="panels">
+      <section class="panel" data-panel="pitch">
+        <div class="head">
+          <h2>## pitch</h2>
+          <button class="mini" type="button" data-reset>reset</button>
+        </div>
+        <div class="value">
+          <input id="pitchNum" type="number" min="-12" max="12" step="0.01" inputmode="decimal" aria-label="Pitch in semitones">
+          <small>st</small>
+        </div>
+        <div class="slider" id="pitchSlider">
+          <input id="pitch" type="range" min="-12" max="12" step="0.01" value="0" aria-label="Pitch slider">
+        </div>
+        <div class="steps">
+          <button class="btn" type="button" data-d="-1">-1</button>
+          <button class="btn" type="button" data-d="-0.1">-.1</button>
+          <button class="btn" type="button" data-d="-0.01">-.01</button>
+          <button class="btn" type="button" data-d="0.01">+.01</button>
+          <button class="btn" type="button" data-d="0.1">+.1</button>
+          <button class="btn" type="button" data-d="1">+1</button>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="tempo">
+        <div class="head">
+          <h2>## tempo</h2>
+          <button class="mini" type="button" data-reset>reset</button>
+        </div>
+        <div class="value">
+          <input id="tempoNum" type="number" min="50" max="200" step="0.01" inputmode="decimal" aria-label="Tempo in percent">
+          <small>%</small>
+        </div>
+        <div class="slider" id="tempoSlider">
+          <input id="tempo" type="range" min="50" max="200" step="0.01" value="100" aria-label="Tempo slider">
+        </div>
+        <div class="steps">
+          <button class="btn" type="button" data-d="-5">-5</button>
+          <button class="btn" type="button" data-d="-1">-1</button>
+          <button class="btn" type="button" data-d="-0.1">-.1</button>
+          <button class="btn" type="button" data-d="0.1">+.1</button>
+          <button class="btn" type="button" data-d="1">+1</button>
+          <button class="btn" type="button" data-d="5">+5</button>
+        </div>
+        <label class="field" for="bpm">
+          <span>song bpm</span>
+          <input id="bpm" type="number" min="1" step="any" placeholder="120" inputmode="decimal">
+          <output id="bpmOut">-</output>
+        </label>
+      </section>
+    </div>
+
+    <label class="link">
+      <input id="link" type="checkbox">
+      <span>lock pitch and tempo</span>
+    </label>
+
+    <div class="export">
+      <div class="opts">
+        <div class="seg" id="codec" role="group" aria-label="Format">
+          <button class="btn" type="button" data-codec="wav">wav</button>
+          <button class="btn" type="button" data-codec="mp3">mp3</button>
+        </div>
+        <div class="seg" id="rate" role="group" aria-label="Bitrate" hidden>
+          <button class="btn" type="button" data-kbps="128">128</button>
+          <button class="btn" type="button" data-kbps="192">192</button>
+          <button class="btn" type="button" data-kbps="256">256</button>
+          <button class="btn" type="button" data-kbps="320">320</button>
+        </div>
+      </div>
+      <button class="btn fill" id="download" type="button" disabled>download wav</button>
+    </div>
+  </section>
+</main>
+
+<script src="detect-bpm.js"></script>
+<script id="dsp">
+const FRAME = 2048
+const HOP = FRAME / 2
+const SEARCH = 256
+const hann = Float32Array.from({ length: FRAME }, (_, i) => 0.5 - 0.5 * Math.cos((2 * Math.PI * i) / FRAME))
+
+const tick = () => new Promise((resolve) => setTimeout(resolve))
+
+// rate > 1 shortens the audio without moving the pitch
+async function stretch(chans, rate, onProgress, cancelled) {
+  const len = chans[0].length
+  const mono = chans[0]
+
+  const outLen = Math.floor(len / rate)
+  const frames = Math.ceil(outLen / HOP)
+  const pos = new Int32Array(frames)
+
+  for (let k = 1; k < frames; k++) {
+    const target = Math.round(k * HOP * rate)
+    const natural = pos[k - 1] + HOP
+    let best = target
+
+    if (natural + HOP <= len) {
+      let bestScore = -Infinity
+      for (let p = target - SEARCH; p <= target + SEARCH; p += 2) {
+        if (p < 0 || p + HOP > len) continue
+        let score = 0
+        for (let i = 0; i < HOP; i += 4) score += mono[p + i] * mono[natural + i]
+        if (score > bestScore) {
+          bestScore = score
+          best = p
+        }
+      }
+    }
+    pos[k] = best
+
+    if (k % 400 === 0) {
+      onProgress(k / frames)
+      await tick()
+      if (cancelled()) return null
+    }
+  }
+
+  return chans.map((c) => {
+    const out = new Float32Array(outLen + FRAME)
+    for (let k = 0; k < frames; k++) {
+      const o = k * HOP
+      const p = pos[k]
+      const n = Math.min(FRAME, len - p)
+      for (let i = 0; i < n; i++) out[o + i] += c[p + i] * hann[i]
+    }
+    return out.subarray(0, outLen)
+  })
+}
+
+// f > 1 raises the pitch and shortens the audio
+function resample(c, f) {
+  const n = Math.floor(c.length / f)
+  const out = new Float32Array(n)
+  for (let i = 0; i < n; i++) {
+    const x = i * f
+    const j = Math.floor(x)
+    const a = c[j]
+    const b = c[j + 1] ?? a
+    out[i] = a + (b - a) * (x - j)
+  }
+  return out
+}
+
+function toWav(buf) {
+  const ch = buf.numberOfChannels
+  const n = buf.length
+  const bytes = n * ch * 2
+  const view = new DataView(new ArrayBuffer(44 + bytes))
+  const text = (at, s) => {
+    for (let i = 0; i < s.length; i++) view.setUint8(at + i, s.charCodeAt(i))
+  }
+
+  text(0, 'RIFF')
+  view.setUint32(4, 36 + bytes, true)
+  text(8, 'WAVEfmt ')
+  view.setUint32(16, 16, true)
+  view.setUint16(20, 1, true)
+  view.setUint16(22, ch, true)
+  view.setUint32(24, buf.sampleRate, true)
+  view.setUint32(28, buf.sampleRate * ch * 2, true)
+  view.setUint16(32, ch * 2, true)
+  view.setUint16(34, 16, true)
+  text(36, 'data')
+  view.setUint32(40, bytes, true)
+
+  const data = Array.from({ length: ch }, (_, c) => buf.getChannelData(c))
+  let at = 44
+  for (let i = 0; i < n; i++) {
+    for (let c = 0; c < ch; c++) {
+      const s = Math.max(-1, Math.min(1, data[c][i]))
+      view.setInt16(at, s < 0 ? s * 0x8000 : s * 0x7fff, true)
+      at += 2
+    }
+  }
+  return new Uint8Array(view.buffer)
+}
+
+function loadScript(url) {
+  return new Promise((resolve, reject) => {
+    const el = document.createElement('script')
+    el.src = url
+    el.onload = resolve
+    el.onerror = reject
+    document.head.append(el)
+  })
+}
+
+async function loadLame() {
+  if (window.lamejs) return
+  try {
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.min.js')
+  } catch {
+    await loadScript('https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js')
+  }
+}
+
+async function toMp3(buf, kbps, onProgress) {
+  await loadLame()
+  const ch = buf.numberOfChannels
+  const enc = new lamejs.Mp3Encoder(ch, buf.sampleRate, kbps)
+  const data = Array.from({ length: ch }, (_, c) => buf.getChannelData(c))
+  const block = 1152
+
+  const pcm = (c, from, to) => {
+    const out = new Int16Array(to - from)
+    for (let i = 0; i < out.length; i++) {
+      const s = Math.max(-1, Math.min(1, data[c][from + i]))
+      out[i] = s < 0 ? s * 0x8000 : s * 0x7fff
+    }
+    return out
+  }
+
+  const parts = []
+  for (let at = 0, n = 0; at < buf.length; at += block, n++) {
+    const to = Math.min(at + block, buf.length)
+    const out = ch === 1 ? enc.encodeBuffer(pcm(0, at, to)) : enc.encodeBuffer(pcm(0, at, to), pcm(1, at, to))
+    if (out.length) parts.push(out)
+    if (n % 300 === 0) {
+      onProgress(at / buf.length)
+      await tick()
+    }
+  }
+  parts.push(enc.flush())
+  return new Uint8Array(await new Blob(parts).arrayBuffer())
+}
+</script>
+
+<script>
+const $ = (id) => document.getElementById(id)
+
+const state = { pitch: 0, tempo: 100, link: false, codec: 'wav', kbps: 192 }
+
+let ctx
+let source
+let rendered
+let src
+let playing = false
+let offset = 0
+let startedAt = 0
+let job = 0
+let timer = 0
+
+const fmt = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v))
+
+function position() {
+  if (!playing) return offset
+  return Math.min(rendered.duration, offset + ctx.currentTime - startedAt)
+}
+
+function stopSource() {
+  if (!src) return
+  const s = src
+  src = null
+  s.stop()
+}
+
+function startSource() {
+  stopSource()
+  const s = ctx.createBufferSource()
+  s.buffer = rendered
+  s.connect(ctx.destination)
+  s.onended = () => {
+    if (s !== src) return
+    src = null
+    playing = false
+    offset = 0
+    sync()
+  }
+  s.start(0, offset)
+  src = s
+  startedAt = ctx.currentTime
+}
+
+async function togglePlay() {
+  if (playing) {
+    offset = position()
+    stopSource()
+    playing = false
+  } else {
+    await ctx.resume()
+    startSource()
+    playing = true
+  }
+  sync()
+}
+
+function seek(frac) {
+  offset = clamp(frac, 0, 1) * rendered.duration
+  if (playing) startSource()
+  sync()
+}
+
+function setStatus(text) {
+  $('status').textContent = text
+}
+
+function setValue(el, v) {
+  if (document.activeElement !== el) el.value = v
+}
+
+function sync() {
+  const p = state.pitch
+  setValue($('pitchNum'), +p.toFixed(2))
+  setValue($('tempoNum'), +state.tempo.toFixed(2))
+  $('pitch').value = p
+  $('tempo').value = state.tempo
+  $('pitchSlider').style.setProperty('--pct', `${((p + 12) / 24) * 100}%`)
+  $('tempoSlider').style.setProperty('--pct', `${((state.tempo - 50) / 150) * 100}%`)
+  $('play').textContent = playing ? 'pause' : 'play'
+
+  const bpm = parseFloat($('bpm').value)
+  $('bpmOut').textContent = bpm > 0 ? `${((bpm * state.tempo) / 100).toFixed(1)} BPM` : '-'
+
+  if (rendered) {
+    $('time').textContent = `${fmt(position())} / ${fmt(rendered.duration)}`
+    draw()
+  }
+}
+
+function draw() {
+  const canvas = $('wave')
+  const dpr = window.devicePixelRatio || 1
+  const w = canvas.clientWidth
+  const h = canvas.clientHeight
+  if (canvas.width !== Math.round(w * dpr)) {
+    canvas.width = Math.round(w * dpr)
+    canvas.height = Math.round(h * dpr)
+  }
+
+  const g = canvas.getContext('2d')
+  g.setTransform(dpr, 0, 0, dpr, 0, 0)
+  g.clearRect(0, 0, w, h)
+
+  const css = getComputedStyle(document.documentElement)
+  const accent = css.getPropertyValue('--accent')
+  const ink = css.getPropertyValue('--ink')
+  const bars = source.peaks.length
+  const step = w / bars
+  const played = position() / rendered.duration
+  for (let i = 0; i < bars; i++) {
+    const bh = Math.max(2, source.peaks[i] * (h - 16))
+    g.fillStyle = i / bars < played ? accent : ink
+    g.fillRect(i * step, (h - bh) / 2, Math.max(1, step - 1.5), bh)
+  }
+}
+
+function frame() {
+  if (playing) sync()
+  requestAnimationFrame(frame)
+}
+
+function schedule() {
+  clearTimeout(timer)
+  $('download').disabled = true
+  timer = setTimeout(render, 300)
+}
+
+async function render() {
+  const id = ++job
+  setStatus('rendering')
+
+  const f = 2 ** (state.pitch / 12)
+  const rate = state.tempo / 100 / f
+  let chans = source.chans
+
+  if (Math.abs(rate - 1) > 0.002) {
+    chans = await stretch(
+      chans,
+      rate,
+      (p) => setStatus(`rendering ${Math.round(p * 100)}%`),
+      () => id !== job
+    )
+    if (!chans) return
+  }
+  if (Math.abs(f - 1) > 0.0005) chans = chans.map((c) => resample(c, f))
+
+  const buf = ctx.createBuffer(chans.length, chans[0].length, source.sampleRate)
+  chans.forEach((c, i) => buf.copyToChannel(c, i))
+
+  const frac = rendered ? position() / rendered.duration : 0
+  rendered = buf
+  offset = frac * buf.duration
+  if (playing) startSource()
+
+  setStatus('')
+  $('download').disabled = false
+  sync()
+}
+
+function peaksOf(chans, bars) {
+  const size = chans[0].length / bars
+  const stride = Math.max(1, Math.floor(size / 200))
+  const peaks = new Float32Array(bars)
+  for (let b = 0; b < bars; b++) {
+    const from = Math.floor(b * size)
+    const to = Math.floor((b + 1) * size)
+    let max = 0
+    for (const c of chans) {
+      for (let i = from; i < to; i += stride) max = Math.max(max, Math.abs(c[i]))
+    }
+    peaks[b] = max
+  }
+  return peaks
+}
+
+let bpmJob = 0
+
+async function findBpm() {
+  const id = ++bpmJob
+  $('bpm').value = ''
+  $('bpm').placeholder = 'finding'
+  sync()
+
+  const { chans, sampleRate } = source
+  const mono = new Float32Array(chans[0].length)
+  for (const c of chans) {
+    for (let i = 0; i < mono.length; i++) mono[i] += c[i] / chans.length
+  }
+
+  try {
+    const sections = await detectSections(mono, sampleRate)
+    if (id !== bpmJob) return
+    const longest = sections.reduce((a, b) => (b.end - b.start > a.end - a.start ? b : a))
+    $('bpm').value = longest.bpm.toFixed(2)
+  } catch {
+    if (id !== bpmJob) return
+  }
+  $('bpm').placeholder = '120'
+  sync()
+}
+
+async function load(file) {
+  setStatus('decoding')
+  $('app').hidden = false
+  $('drop').hidden = true
+  ctx ??= new AudioContext()
+
+  let decoded
+  try {
+    decoded = await ctx.decodeAudioData(await file.arrayBuffer())
+  } catch {
+    $('app').hidden = true
+    $('drop').hidden = false
+    $('drop').querySelector('small').textContent = 'that file could not be decoded'
+    return
+  }
+
+  stopSource()
+  playing = false
+  offset = 0
+  rendered = null
+
+  const chans = Array.from({ length: Math.min(2, decoded.numberOfChannels) }, (_, i) => decoded.getChannelData(i))
+  source = {
+    name: file.name.replace(/\.[^.]+$/, ''),
+    chans,
+    sampleRate: decoded.sampleRate,
+    peaks: peaksOf(chans, 240),
+  }
+  $('name').textContent = file.name
+  await render()
+  findBpm()
+}
+
+async function download() {
+  const p = state.pitch
+  const base = `${source.name}_${p >= 0 ? '+' : ''}${p.toFixed(1)}st_${Math.round(state.tempo)}pct`
+  const ext = state.codec
+  const mp3 = ext === 'mp3'
+
+  let bytes
+  $('download').disabled = true
+  try {
+    bytes = mp3 ? await toMp3(rendered, state.kbps, (f) => setStatus(`encoding ${Math.round(f * 100)}%`)) : toWav(rendered)
+  } catch {
+    setStatus('could not load the mp3 encoder')
+    $('download').disabled = false
+    return
+  }
+  setStatus('')
+  $('download').disabled = false
+
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(new Blob([bytes], { type: mp3 ? 'audio/mpeg' : 'audio/wav' }))
+  a.download = `${base}.${ext}`
+  a.click()
+}
+
+function syncExport() {
+  const mp3 = state.codec === 'mp3'
+  for (const b of $('codec').children) b.setAttribute('aria-pressed', b.dataset.codec === state.codec)
+  for (const b of $('rate').children) b.setAttribute('aria-pressed', +b.dataset.kbps === state.kbps)
+  $('rate').hidden = !mp3
+  $('download').textContent = `download ${state.codec}`
+}
+
+function setPitch(v) {
+  state.pitch = clamp(Math.round(v * 100) / 100, -12, 12)
+  if (state.link) state.tempo = 100 * 2 ** (state.pitch / 12)
+  sync()
+  schedule()
+}
+
+function setTempo(v) {
+  state.tempo = clamp(Math.round(v * 100) / 100, 50, 200)
+  if (state.link) state.pitch = Math.round(12 * Math.log2(state.tempo / 100) * 100) / 100
+  sync()
+  schedule()
+}
+
+$('file').addEventListener('change', async (e) => {
+  const file = e.target.files[0]
+  if (file) await load(file)
+  e.target.value = ''
+})
+
+syncExport()
+
+for (const type of ['dragover', 'drop']) {
+  window.addEventListener(type, (e) => e.preventDefault())
+}
+window.addEventListener('drop', (e) => {
+  if (e.dataTransfer.files[0]) load(e.dataTransfer.files[0])
+})
+$('drop').addEventListener('dragenter', () => $('drop').classList.add('over'))
+$('drop').addEventListener('dragleave', () => $('drop').classList.remove('over'))
+
+$('play').addEventListener('click', togglePlay)
+$('download').addEventListener('click', download)
+$('pitch').addEventListener('input', (e) => setPitch(+e.target.value))
+$('tempo').addEventListener('input', (e) => setTempo(+e.target.value))
+$('bpm').addEventListener('input', sync)
+$('link').addEventListener('change', (e) => {
+  state.link = e.target.checked
+  if (state.link) setTempo(state.tempo)
+})
+
+$('codec').addEventListener('click', (e) => {
+  const b = e.target.closest('button')
+  if (!b) return
+  state.codec = b.dataset.codec
+  syncExport()
+})
+$('rate').addEventListener('click', (e) => {
+  const b = e.target.closest('button')
+  if (!b) return
+  state.kbps = +b.dataset.kbps
+  syncExport()
+})
+
+$('pitchNum').addEventListener('change', (e) => e.target.value !== '' && setPitch(+e.target.value))
+$('tempoNum').addEventListener('change', (e) => e.target.value !== '' && setTempo(+e.target.value))
+
+const setters = { pitch: setPitch, tempo: setTempo }
+$('panels').addEventListener('click', (e) => {
+  const b = e.target.closest('button')
+  if (!b) return
+  const kind = b.closest('[data-panel]').dataset.panel
+  if (b.dataset.reset !== undefined) setters[kind](kind === 'pitch' ? 0 : 100)
+  else setters[kind](state[kind] + +b.dataset.d)
+})
+
+const wave = $('wave')
+const seekFrom = (e) => seek((e.clientX - wave.getBoundingClientRect().left) / wave.clientWidth)
+wave.addEventListener('pointerdown', (e) => {
+  wave.setPointerCapture(e.pointerId)
+  seekFrom(e)
+})
+wave.addEventListener('pointermove', (e) => {
+  if (wave.hasPointerCapture(e.pointerId)) seekFrom(e)
+})
+
+window.addEventListener('resize', () => rendered && draw())
+
+sync()
+requestAnimationFrame(frame)
+</script>
+</body>
+</html>
