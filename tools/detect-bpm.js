@@ -154,6 +154,12 @@
     return refine ? search(coarse - coarseStep, coarse + coarseStep, 0.01) : coarse
   }
 
+  // 3/4 only when the 3-beat bar repeats much harder than the 4-beat one, since almost everything is 4/4
+  function guessMeter(env, frameRate, bpm) {
+    const beat = bpm / 60 / frameRate
+    return magnitude(env, beat / 3) > 2.5 * magnitude(env, beat / 4) ? 3 : 4
+  }
+
   const FINE_FRAME = 256
   const FINE_HOP = 32
 
@@ -244,10 +250,17 @@
     const sections = []
     for (const g of kept) {
       const to = Math.min(env.length, g.to + size - step)
-      const bpm = estimate(env.subarray(g.from, to), frameRate, 0.25, true)
+      const part = env.subarray(g.from, to)
+      const bpm = estimate(part, frameRate, 0.25, true)
       const start = g.from / frameRate
       const headEnd = Math.min(to / frameRate, start + OFFSET_SECONDS)
-      sections.push({ start, end: to / frameRate, bpm, offset: fineBeatTime(signal, rate, start, headEnd, bpm) + LATENCY })
+      sections.push({
+        start,
+        end: to / frameRate,
+        bpm,
+        meter: guessMeter(part, frameRate, bpm),
+        offset: fineBeatTime(signal, rate, start, headEnd, bpm) + LATENCY,
+      })
     }
     for (let i = 0; i < sections.length - 1; i++) sections[i].end = sections[i + 1].start
     onProgress?.(1)

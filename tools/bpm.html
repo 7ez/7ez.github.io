@@ -82,7 +82,7 @@ td {
   <h1 class="title">BPM finder</h1>
 
   <label class="drop" id="drop">
-    <input class="sr" id="file" type="file" accept="audio/*">
+    <input class="sr" id="file" type="file" accept=".mp3,.ogg,.wav,.flac,.m4a,.aac,.opus,.webm">
     <strong>choose an audio file</strong>
     <small>or drop one here</small>
   </label>
@@ -94,6 +94,7 @@ td {
       <tr>
         <th>time</th>
         <th>bpm</th>
+        <th title="beats per bar, guessed. assumes 4/4 unless 3/4 is clear">meter</th>
         <th title="a beat near the start of the section, then the same plus half a beat in case it landed on the off-beat">offset</th>
         <th>could also be</th>
       </tr>
@@ -130,6 +131,8 @@ function show(sections) {
     const bpm = row.insertCell()
     bpm.className = 'bpm'
     bpm.textContent = s.bpm.toFixed(2)
+
+    row.insertCell().textContent = `${s.meter}/4`
 
     const offset = row.insertCell()
     offset.textContent = `~${Math.round(s.offset * 1000)}`
