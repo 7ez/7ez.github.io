@@ -3,7 +3,7 @@
   const FRAME = 1024
   const HOP = 256
   const MIN_BPM = 60
-  const MAX_BPM = 200
+  const MAX_BPM = 260
   const WINDOW_SECONDS = 20
   const STEP_SECONDS = 10
   const MIN_SECTION_SECONDS = 30
@@ -246,6 +246,8 @@
       if (last && (g.to - g.from < minFrames || sameTempo(g.bpm, last.bpm))) last.to = g.to
       else kept.push({ ...g })
     }
+    // a short intro has nothing before it to merge into, so fold it into what follows
+    if (kept.length > 1 && kept[0].to - kept[0].from < minFrames) kept[1].from = kept.shift().from
 
     const sections = []
     for (const g of kept) {
@@ -254,12 +256,14 @@
       const bpm = estimate(part, frameRate, 0.25, true)
       const start = g.from / frameRate
       const headEnd = Math.min(to / frameRate, start + OFFSET_SECONDS)
+      let offset = fineBeatTime(signal, rate, start, headEnd, bpm) + LATENCY
+      if (offset < start) offset += 60 / bpm
       sections.push({
         start,
         end: to / frameRate,
         bpm,
         meter: guessMeter(part, frameRate, bpm),
-        offset: fineBeatTime(signal, rate, start, headEnd, bpm) + LATENCY,
+        offset,
       })
     }
     for (let i = 0; i < sections.length - 1; i++) sections[i].end = sections[i + 1].start
