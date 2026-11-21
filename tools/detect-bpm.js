@@ -7,6 +7,8 @@
   const WINDOW_SECONDS = 20
   const STEP_SECONDS = 10
   const MIN_SECTION_SECONDS = 30
+  const OFFSET_SECONDS = 30
+  const LATENCY = -0.0166
 
   const tick = () => new Promise((resolve) => setTimeout(resolve))
 
@@ -104,7 +106,7 @@
       env[t] = Math.max(0, env[t] - mean)
     }
 
-    return { env, frameRate: rate / HOP }
+    return { env, frameRate: rate / HOP, signal: x, rate }
   }
 
   function magnitude(env, cyclesPerFrame) {
@@ -152,13 +154,65 @@
     return refine ? search(coarse - coarseStep, coarse + coarseStep, 0.01) : coarse
   }
 
+  const FINE_FRAME = 256
+  const FINE_HOP = 32
+
+  // seconds of the first beat at or after `start`, found by folding fine onsets over one beat period
+  function fineBeatTime(signal, rate, start, end, bpm) {
+    const period = 60 / bpm
+    const bins = Math.round((period * rate) / FINE_HOP)
+    const profile = new Float64Array(bins)
+
+    const hann = Float64Array.from({ length: FINE_FRAME }, (_, i) => 0.5 - 0.5 * Math.cos((2 * Math.PI * i) / FINE_FRAME))
+    const maxBin = Math.floor((5000 * FINE_FRAME) / rate)
+    const re = new Float64Array(FINE_FRAME)
+    const im = new Float64Array(FINE_FRAME)
+    let prev = new Float64Array(maxBin)
+    let cur = new Float64Array(maxBin)
+
+    const from = Math.floor(start * rate)
+    const to = Math.min(signal.length - FINE_FRAME, Math.floor(end * rate))
+    for (let s = from; s < to; s += FINE_HOP) {
+      for (let i = 0; i < FINE_FRAME; i++) {
+        re[i] = signal[s + i] * hann[i]
+        im[i] = 0
+      }
+      fft(re, im)
+
+      let flux = 0
+      for (let b = 1; b < maxBin; b++) {
+        cur[b] = Math.log(1 + 1000 * Math.hypot(re[b], im[b]))
+        flux += Math.max(0, cur[b] - prev[b])
+      }
+      ;[prev, cur] = [cur, prev]
+
+      const time = (s + FINE_FRAME / 2) / rate
+      const bin = Math.floor((((time % period) + period) % period) / period * bins)
+      profile[bin] += flux
+    }
+
+    let best = 0
+    let bestSum = -1
+    for (let b = 0; b < bins; b++) {
+      let sum = 0
+      for (let k = -3; k <= 3; k++) sum += profile[(b + k + bins) % bins]
+      if (sum > bestSum) {
+        bestSum = sum
+        best = b
+      }
+    }
+
+    const phase = ((best + 0.5) / bins) * period
+    return start + ((((phase - start) % period) + period) % period)
+  }
+
   const sameTempo = (a, b) => {
     const octaves = Math.log2(a / b)
     return Math.abs(octaves - Math.round(octaves)) < 0.02
   }
 
   async function detectSections(mono, sampleRate, onProgress) {
-    const { env, frameRate } = await onsetEnvelope(mono, sampleRate, (p) => onProgress?.(p * 0.6))
+    const { env, frameRate, signal, rate } = await onsetEnvelope(mono, sampleRate, (p) => onProgress?.(p * 0.6))
 
     const size = Math.round(WINDOW_SECONDS * frameRate)
     const step = Math.round(STEP_SECONDS * frameRate)
@@ -191,7 +245,9 @@
     for (const g of kept) {
       const to = Math.min(env.length, g.to + size - step)
       const bpm = estimate(env.subarray(g.from, to), frameRate, 0.25, true)
-      sections.push({ start: g.from / frameRate, end: to / frameRate, bpm })
+      const start = g.from / frameRate
+      const headEnd = Math.min(to / frameRate, start + OFFSET_SECONDS)
+      sections.push({ start, end: to / frameRate, bpm, offset: fineBeatTime(signal, rate, start, headEnd, bpm) + LATENCY })
     }
     for (let i = 0; i < sections.length - 1; i++) sections[i].end = sections[i + 1].start
     onProgress?.(1)

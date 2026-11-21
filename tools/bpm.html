@@ -94,6 +94,7 @@ td {
       <tr>
         <th>time</th>
         <th>bpm</th>
+        <th title="a beat near the start of the section, then the same plus half a beat in case it landed on the off-beat">offset</th>
         <th>could also be</th>
       </tr>
     </thead>
@@ -129,6 +130,13 @@ function show(sections) {
     const bpm = row.insertCell()
     bpm.className = 'bpm'
     bpm.textContent = s.bpm.toFixed(2)
+
+    const offset = row.insertCell()
+    offset.textContent = `~${Math.round(s.offset * 1000)}`
+    const half = document.createElement('span')
+    half.className = 'other'
+    half.textContent = ` / ${Math.round((s.offset + 30 / s.bpm) * 1000)} ms`
+    offset.append(half)
 
     const other = row.insertCell()
     other.className = 'other'
